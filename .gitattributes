@@ -1,0 +1,9 @@
+* text=auto eol=lf
+
+*.mcfunction text eol=lf
+*.mcmeta     text eol=lf linguist-language=JSON
+
+*.png  binary
+*.ogg  binary
+*.nbt  binary
+*.zip  binary

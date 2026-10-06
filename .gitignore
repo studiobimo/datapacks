@@ -1,0 +1,19 @@
+# Build output: packaged datapacks (make -C .devtools build)
+dist/
+*.zip
+
+# Python (.devtools)
+.venv/
+__pycache__/
+
+# Editors
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+__MACOSX/
+Thumbs.db
+
+# Local agent settings (shared settings are committed)
+.claude/settings.local.json

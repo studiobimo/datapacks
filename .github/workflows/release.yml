@@ -1,0 +1,79 @@
+name: Release
+
+# The whole release path, in one run.
+#
+#   push to main            -> release-please grooms one release pull request per pack
+#   merge that pull request -> release-please tags it (<pack>-v<version>) and cuts
+#                              the GitHub Release
+#                           -> assets builds the pack at that tag and attaches the zip
+#
+# Both jobs have to share one run. A tag created with GITHUB_TOKEN does not trigger
+# another workflow -- GitHub suppresses that to stop runaway loops -- so a separate
+# `on: push: tags` or `on: release` publisher would silently never fire.
+#
+# The assets job does not read release-please's outputs: with one package per pack
+# they are keyed by path, and the org wrapper only surfaces the root package. It
+# asks the API instead -- any pack whose current release has no zip gets one -- which
+# also means a failed upload heals itself on the next push to main.
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+# Never cancel a release in flight; a half-finished one is worse than a slow one.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # A called workflow can never hold more than its caller, so the caller has to
+    # grant what it needs. `permissions: {}` above keeps every other job at nothing.
+    permissions:
+      contents: write
+      pull-requests: write
+    uses: studiobimo/.github/.github/workflows/release-please.yml@v1
+
+  assets:
+    name: Attach pack zips
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      # Uploading the zips onto the GitHub Release.
+      contents: write
+    steps:
+      - name: Check out with tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Build and attach missing zips
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          for dir in packs/*/; do
+            slug="$(basename "${dir}")"
+            version="$(jq -r --arg path "packs/${slug}" '.[$path] // empty' .release-please-manifest.json)"
+            tag="${slug}-v${version}"
+
+            assets="$(gh release view "${tag}" --json assets --jq '.assets | length' 2>/dev/null || true)"
+            if [ -z "${assets}" ]; then
+              echo "${tag}: not released yet, skipping"
+              continue
+            fi
+            if [ "${assets}" -gt 0 ]; then
+              echo "${tag}: already has its zip, skipping"
+              continue
+            fi
+
+            # Build from the tag, never from main: main may already be ahead of it.
+            git checkout --quiet "${tag}"
+            python3 .devtools/scripts/build.py "${slug}"
+            gh release upload "${tag}" dist/"${slug}"-*.zip
+            git checkout --quiet "${GITHUB_SHA}"
+          done
