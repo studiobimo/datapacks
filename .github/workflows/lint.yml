@@ -1,12 +1,5 @@
 name: Lint
 
-# Everything `make -C .devtools lint` runs: every pre-commit hook, over every file.
-# That includes check-packs, so pack layout, namespaces, JSON and references are
-# validated here too.
-#
-# It calls the org workflow rather than listing tools, so .pre-commit-config.yaml
-# stays the only place a linter's version is written down.
-
 on:
   push:
     branches: [main]
@@ -21,11 +14,8 @@ concurrency:
 
 jobs:
   lint:
-    # A called workflow can never hold more than its caller, so the caller has to
-    # grant what it needs. `permissions: {}` above keeps every other job at nothing.
     permissions:
       contents: read
     uses: studiobimo/.github/.github/workflows/ci-pre-commit.yml@v1
     with:
-      # Where pre-commit itself is pinned, the same project `make -C .devtools lint` uses.
       uv-project: .devtools

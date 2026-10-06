@@ -1,9 +1,13 @@
+# >>> template:base
 * text=auto eol=lf
+
+*.png  binary
+*.jpg  binary
+*.zip  binary
+# <<< template:base
 
 *.mcfunction text eol=lf
 *.mcmeta     text eol=lf linguist-language=JSON
 
-*.png  binary
 *.ogg  binary
 *.nbt  binary
-*.zip  binary
