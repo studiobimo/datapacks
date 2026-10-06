@@ -22,15 +22,12 @@ on:
 
 permissions: {}
 
-# Never cancel a release in flight; a half-finished one is worse than a slow one.
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
   release:
-    # A called workflow can never hold more than its caller, so the caller has to
-    # grant what it needs. `permissions: {}` above keeps every other job at nothing.
     permissions:
       contents: write
       pull-requests: write
@@ -42,7 +39,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      # Uploading the zips onto the GitHub Release.
       contents: write
     steps:
       - name: Check out with tags
