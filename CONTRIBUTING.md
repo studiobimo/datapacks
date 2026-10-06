@@ -20,7 +20,7 @@ Thanks for helping! This project follows a few strict conventions, and tooling e
 | `packs/<slug>/pack.toml` | Release metadata: display name, version, target Minecraft version |
 | `packs/<slug>/pack.mcmeta`, `pack.png`, `data/` | The datapack itself. Only these ship in the zip, plus `LICENSE`. |
 | `packs/<slug>/README.md` | Player-facing docs, reused for the download page |
-| `.devtools/` | Makefile, pinned Python tools, build, check and guard scripts |
+| `.devtools/` | Makefile, shared `base.mk`, pinned Python tools, build, check and guard scripts |
 | `dist/` | Build output. Ignored by git. |
 
 ## Adding a pack
@@ -43,23 +43,23 @@ exists. It cannot check command syntax; only the game can. Before opening a PR:
 2. `/reload` and read the log: a function that fails to parse is reported there and nowhere else.
 3. Exercise the feature, then run `/function <namespace>:uninstall` and confirm it stops.
 
+<!-- >>> template:workflow -->
 ## Workflow
 
 ### Branches: [Conventional Branch](https://conventionalbranch.org/)
 
 `<type>/<description>`, lowercase, with single hyphens. Types: `feature`/`feat`, `bugfix`/`fix`,
 `hotfix`, `release`, `chore`, plus `claude`/`codex`/`ai` for agent-authored work.
-Examples: `feat/cauldron-copper-tools`, `fix/waxed-chests`.
+Examples: `feat/short-description`, `fix/what-was-broken`.
 
 ### Commits: [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/)
 
 `<type>(<scope>): <summary>`. Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
-`test`, `build`, `ci`, `chore`, `revert`. Scopes: a pack's slug (`cauldron-copper`), or `build`,
-`ci`, `docs`, `deps`, `devtools`. Breaking changes use `!` or a `BREAKING CHANGE:` footer.
+`test`, `build`, `ci`, `chore`, `revert`. Breaking changes use `!` or a `BREAKING CHANGE:` footer.
+The scopes this project uses are listed in `AGENTS.md`.
 
 PRs are **squash-merged**, so the **PR title** must also be a Conventional Commit.
-It becomes the commit on `main` that release-please reads. release-please assigns a commit to a
-pack by the files it touches, so keep a PR to one pack.
+It becomes the commit on `main` that release-please reads.
 
 ### Pull requests: at most 20 files
 
@@ -76,6 +76,21 @@ gh stack sync                          # after a lower layer merges
 
 Each layer is measured against the layer below it. The limit is enforced in the `pre-push` hook,
 in CI, and for AI agents through a PreToolUse hook (`.devtools/scripts/agent-guard.sh`).
+
+### Files the template manages
+
+Some files, and the regions of others between `>>> template:<name>` and `<<< template:<name>`
+markers, are kept in step with `studiobimo/project-template`. Change them there, not here; then
+`make -C .devtools sync` brings the change in. `make -C .devtools drift` shows what differs, and a
+weekly workflow opens an issue when something does. A deliberate difference goes in
+`.template-ignore`, with a comment saying why.
+<!-- <<< template:workflow -->
+
+### One pack per pull request
+
+Scopes are a pack's slug (`cauldron-copper`), or `build`, `ci`, `docs`, `deps`, `devtools`.
+release-please assigns a commit to a pack by the files it touches, so keep a PR to one pack.
+Example branches: `feat/cauldron-copper-tools`, `fix/waxed-chests`.
 
 ## Pack standards
 

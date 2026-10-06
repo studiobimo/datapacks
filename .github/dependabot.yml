@@ -1,6 +1,6 @@
-# Dependency updates. Commit messages follow Conventional Commits (chore(deps): ...).
 version: 2
 updates:
+  # >>> template:base
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -39,3 +39,4 @@ updates:
     groups:
       devtools:
         patterns: ["*"]
+  # <<< template:base
