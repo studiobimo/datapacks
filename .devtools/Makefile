@@ -1,6 +1,6 @@
 include base.mk
 
-PYTHON := $(UV) run --frozen python
+PYTHON := $(MISE) exec -- python
 
 .PHONY: validate build check lock clean
 

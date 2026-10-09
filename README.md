@@ -25,7 +25,7 @@ Each pack's page explains how to use it and how to uninstall it cleanly.
 
 ## Development
 
-Requirements: [uv](https://docs.astral.sh/uv/).
+Requirements: [mise](https://mise.jdx.dev/getting-started.html).
 
 ```sh
 make -C .devtools setup      # pinned tools + git hooks
