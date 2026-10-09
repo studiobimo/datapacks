@@ -10,7 +10,8 @@ No mods, no resource packs, no build step beyond zipping.
 - Catalog and install instructions: `README.md`
 - Player-facing docs for a pack: `packs/<slug>/README.md`
 - Workflow and conventions in full: `CONTRIBUTING.md`
-- Commit scopes: a pack's slug (`cauldron-copper`), or `build`, `ci`, `docs`, `deps`, `devtools`
+- Commit scopes: a pack's slug (`cauldron-copper`), or `build`, `ci`, `docs`, `deps`, `devtools`.
+  `.commitlintrc.yaml` enforces this list, so a new pack's slug is added there too.
 
 ## Layout
 
@@ -22,8 +23,11 @@ packs/<slug>/            one datapack; <slug> is kebab-case
   README.md              player-facing docs
   data/<namespace>/      the pack's own content; <namespace> is <slug> in snake_case
   data/minecraft/tags/   only to hook into vanilla tags (load, tick)
-.devtools/               Makefile (project targets), base.mk (shared targets), pinned Python tools
-  scripts/               build.py, check-packs.py, agent-guard.sh, template-sync.sh
+.devtools/               Makefile (project targets), base.mk (shared targets), lefthook-base.yml (shared hooks)
+  scripts/               build.py, check-packs.py, agent-guard.sh, template-sync.sh, github-setup.sh
+mise.toml  mise.lock     every tool the hooks and CI run, pinned; .mise/locks/ belongs with them
+lefthook.yml             this project's hooks, on top of the shared ones
+.commitlintrc.yaml       commit rules: commitlint's conventional config plus this project's scopes
 dist/                    build output, ignored
 ```
 
@@ -35,6 +39,8 @@ violation is caught before it is reviewed.
 
 - **Commits:** [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/),
   `<type>(<scope>): <summary>`. PRs are squash-merged, so the **PR title** must be one too.
+  commitlint checks both against its conventional config: a lowercase summary with no full stop,
+  at most 100 characters in the header and in each body line, and a scope from the project's list.
 - **Branches:** [Conventional Branch](https://conventionalbranch.org/), `<type>/<description>`
   in lowercase with single hyphens, e.g. `feat/short-description`. Agents may use `claude/…` or
   `codex/…`.
@@ -42,9 +48,11 @@ violation is caught before it is reviewed.
   (`gh stack init`, `gh stack add`, `gh stack submit`).
 - **Versioning:** SemVer, managed by release-please. Never edit a version, a
   `.release-please-manifest.json` or a `CHANGELOG.md` by hand.
-- **Pinning:** third-party GitHub Actions and pre-commit hooks are pinned to full commit SHAs with
-  the version in a comment; studiobimo's own reusable workflows are called at `@v1`. Python tools
-  are locked in `.devtools/uv.lock`.
+- **Pinning:** third-party GitHub Actions are pinned to full commit SHAs with the version in a
+  comment; studiobimo's own reusable workflows are called at `@v1`. Every tool is pinned in
+  `mise.toml` and locked in `mise.lock`. Dependabot does not read `mise.toml`: a tool is bumped by
+  hand, then `make -C .devtools lock`, and `mise.toml`, `mise.lock` and `.mise/locks/` are
+  committed together.
 - **Workflows:** `permissions: {}` at the top, the minimum per job, `persist-credentials: false`
   on every checkout, secrets passed explicitly and never with `secrets: inherit`.
 - **Say what you tested.** State what you ran and what it showed. If something could not be
@@ -61,7 +69,8 @@ weekly workflow reports as an issue.
 | To change | Edit it in | It reaches this repo by |
 | --- | --- | --- |
 | CI behaviour (lint, PR checks, release) | `studiobimo/.github`, `.github/workflows/` | the `@v1` tag moving |
-| Commit, branch and PR-size rules | `studiobimo/.github`, `.devtools/` | a `rev:` bump in `.pre-commit-config.yaml` |
+| Branch and PR-size rules | `studiobimo/.github`, `.devtools/` | the `@v1` tag moving; lefthook refetches it daily |
+| Shared hooks and tool versions | `studiobimo/project-template` | `make -C .devtools sync` |
 | Files and blocks listed in the template's `.template/manifest` | `studiobimo/project-template` | `make -C .devtools sync` |
 
 A managed block sits between `>>> template:<name>` and `<<< template:<name>` marker lines, like
@@ -88,7 +97,7 @@ make -C .devtools setup      # once: pinned tools + git hooks
 make -C .devtools check      # everything CI runs (lint + validate), plus a build
 make -C .devtools validate   # pack layout, namespaces, JSON and references only
 make -C .devtools build      # zip every pack into dist/ (PACK=<slug> for one)
-make -C .devtools lock       # after changing a tool version in .devtools/pyproject.toml
+make -C .devtools lock       # after changing a tool version in mise.toml
 make -C .devtools drift      # where this repo differs from studiobimo/project-template
 make -C .devtools sync       # pull the template's managed files
 ```

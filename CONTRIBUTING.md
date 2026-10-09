@@ -4,10 +4,10 @@ Thanks for helping! This project follows a few strict conventions, and tooling e
 
 ## Setup
 
-1. Install **[uv](https://docs.astral.sh/uv/)** (`brew install uv`). It provides the pinned Python
-   and every tool.
+1. Install **[mise](https://mise.jdx.dev/getting-started.html)** (`brew install mise`). It installs
+   every other tool, Python included, at the version `mise.toml` pins.
 2. Run `make -C .devtools setup`. This installs the pinned tools and the `pre-commit`, `commit-msg`
-   and `pre-push` hooks.
+   and `pre-push` hooks, which [lefthook](https://lefthook.dev/) runs.
 3. Run `make -C .devtools check` to confirm everything passes.
 
 `make -C .devtools help` lists all targets.
@@ -20,7 +20,9 @@ Thanks for helping! This project follows a few strict conventions, and tooling e
 | `packs/<slug>/pack.toml` | Release metadata: display name, version, target Minecraft version |
 | `packs/<slug>/pack.mcmeta`, `pack.png`, `data/` | The datapack itself. Only these ship in the zip, plus `LICENSE`. |
 | `packs/<slug>/README.md` | Player-facing docs, reused for the download page |
-| `.devtools/` | Makefile, shared `base.mk`, pinned Python tools, build, check and guard scripts |
+| `.devtools/` | Makefile, shared `base.mk`, the shared hooks (`lefthook-base.yml`), build, check and guard scripts |
+| `mise.toml`, `mise.lock` | Every tool the hooks and CI run, pinned with checksums |
+| `lefthook.yml` | This project's own hooks, on top of the shared ones |
 | `dist/` | Build output. Ignored by git. |
 
 ## Adding a pack
@@ -56,7 +58,11 @@ Examples: `feat/short-description`, `fix/what-was-broken`.
 
 `<type>(<scope>): <summary>`. Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`,
 `test`, `build`, `ci`, `chore`, `revert`. Breaking changes use `!` or a `BREAKING CHANGE:` footer.
-The scopes this project uses are listed in `AGENTS.md`.
+The scopes this project uses are listed in `AGENTS.md` and enforced from `.commitlintrc.yaml`:
+a scope is optional, but one that is not listed is rejected. The rest is
+[commitlint's conventional config](https://github.com/conventional-changelog/commitlint/tree/master/%40commitlint/config-conventional):
+a lowercase subject with no full stop, and at most 100 characters in the header and in each
+body line.
 
 PRs are **squash-merged**, so the **PR title** must also be a Conventional Commit.
 It becomes the commit on `main` that release-please reads.
