@@ -88,12 +88,9 @@ jobs:
             python3 .devtools/scripts/build.py "${slug}"
             git checkout --quiet "${GITHUB_SHA}"
 
-            for zip in dist/"${slug}"-*.zip; do
-              # Upload by release id; `gh release upload` looks the release up by tag.
-              gh api -X POST "https://uploads.github.com/repos/${GH_REPO}/releases/${id}/assets?name=$(basename "${zip}")" \
-                -H "Content-Type: application/zip" --input "${zip}" >/dev/null
-              echo "✔ ${tag}: attached $(basename "${zip}")"
-            done
+            # --clobber: a run that attached the zip but died before publishing leaves it on
+            # the draft, and a second upload under the same name would be rejected.
+            gh release upload "${tag}" dist/"${slug}"-*.zip --clobber
             gh api -X PATCH "repos/${GH_REPO}/releases/${id}" -F draft=false >/dev/null
             echo "✔ ${tag}: published"
           done
