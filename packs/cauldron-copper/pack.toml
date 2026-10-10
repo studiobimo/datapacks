@@ -1,4 +1,4 @@
 name = "Cauldron Copper"
 # Managed by release-please. Never edit by hand.
-version = "1.0.1" # x-release-please-version
+version = "1.0.2" # x-release-please-version
 minecraft = "26.3"
