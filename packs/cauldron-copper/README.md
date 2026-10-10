@@ -36,7 +36,8 @@ raw copper and copper ore.
 ## Install
 
 1. Download the latest `cauldron-copper-<version>+mc<minecraft>.zip` from the
-   [releases page](https://github.com/studiobimo/datapacks/releases).
+   [releases page](https://github.com/studiobimo/datapacks/releases). Version 1.0.1 was
+   published without its zip; use 1.0.2 or later.
 2. Put the zip, unextracted, in your world's `datapacks` folder.
 3. Run `/reload`, or restart the world.
 
