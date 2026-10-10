@@ -3,9 +3,15 @@ name: Release
 # The whole release path, in one run.
 #
 #   push to main            -> release-please grooms one release pull request per pack
-#   merge that pull request -> release-please tags it (<pack>-v<version>) and cuts
-#                              the GitHub Release
-#                           -> assets builds the pack at that tag and attaches the zip
+#   merge that pull request -> release-please tags it (<pack>-v<version>) and cuts a DRAFT
+#                              GitHub Release
+#                           -> assets builds the pack at that tag, attaches the zip to the
+#                              draft, then publishes it
+#
+# The release is a draft because releases here are immutable: once one is published its
+# assets can no longer change, so the zip has to be on it before it goes public. That is
+# also why release-please creates the tag itself (force-tag-creation); a draft's tag would
+# otherwise not exist until it is published.
 #
 # Both jobs have to share one run. A tag created with GITHUB_TOKEN does not trigger
 # another workflow -- GitHub suppresses that to stop runaway loops -- so a separate
@@ -13,8 +19,10 @@ name: Release
 #
 # The assets job does not read release-please's outputs: with one package per pack
 # they are keyed by path, and the org wrapper only surfaces the root package. It
-# asks the API instead -- any pack whose current release has no zip gets one -- which
-# also means a failed upload heals itself on the next push to main.
+# asks the API instead -- any pack whose current release is still a draft gets its zip
+# and is published -- which also means a failed upload heals itself on the next push to
+# main. A release that was published without a zip cannot be repaired; it is reported and
+# skipped, and the next release carries the zip.
 
 on:
   push:
@@ -47,7 +55,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Build and attach missing zips
+      - name: Build, attach and publish
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -57,19 +65,35 @@ jobs:
             version="$(jq -r --arg path "packs/${slug}" '.[$path] // empty' .release-please-manifest.json)"
             tag="${slug}-v${version}"
 
-            assets="$(gh release view "${tag}" --json assets --jq '.assets | length' 2>/dev/null || true)"
-            if [ -z "${assets}" ]; then
+            # The listing, not `gh release view`: a draft has no page under its tag yet.
+            release="$(gh api "repos/${GH_REPO}/releases" --paginate \
+              --jq ".[] | select(.tag_name == \"${tag}\") | [.id, .draft, (.assets | length)] | @tsv" | head -n 1)"
+            if [ -z "${release}" ]; then
               echo "${tag}: not released yet, skipping"
               continue
             fi
-            if [ "${assets}" -gt 0 ]; then
-              echo "${tag}: already has its zip, skipping"
+            read -r id draft assets <<<"${release}"
+
+            if [ "${draft}" != "true" ]; then
+              if [ "${assets}" -gt 0 ]; then
+                echo "${tag}: already published with its zip, skipping"
+              else
+                echo "::warning::${tag} was published without its zip and is immutable, so it cannot get one. The next release will."
+              fi
               continue
             fi
 
             # Build from the tag, never from main: main may already be ahead of it.
             git checkout --quiet "${tag}"
             python3 .devtools/scripts/build.py "${slug}"
-            gh release upload "${tag}" dist/"${slug}"-*.zip
             git checkout --quiet "${GITHUB_SHA}"
+
+            for zip in dist/"${slug}"-*.zip; do
+              # Upload by release id; `gh release upload` looks the release up by tag.
+              gh api -X POST "https://uploads.github.com/repos/${GH_REPO}/releases/${id}/assets?name=$(basename "${zip}")" \
+                -H "Content-Type: application/zip" --input "${zip}" >/dev/null
+              echo "✔ ${tag}: attached $(basename "${zip}")"
+            done
+            gh api -X PATCH "repos/${GH_REPO}/releases/${id}" -F draft=false >/dev/null
+            echo "✔ ${tag}: published"
           done
