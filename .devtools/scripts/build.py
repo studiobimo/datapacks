@@ -38,9 +38,8 @@ def build(pack: Pack) -> None:
     with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
         for name, data in shipped_files(pack):
             info = zipfile.ZipInfo(name, date_time=EPOCH)
-            info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o644 << 16
-            archive.writestr(info, data)
+            archive.writestr(info, data, compress_type=zipfile.ZIP_DEFLATED)
     print(f"✔ {target.relative_to(ROOT)}")
 
 
