@@ -1,0 +1,6 @@
+# Only the vulture section: vulture reads it from the working directory.
+[tool.vulture]
+# build.py sets ZipInfo.external_attr to 0o644 << 16 so the archive keeps mode 0644 and
+# stays reproducible. zipfile reads that attribute when it writes the archive, a use vulture
+# cannot see in the stdlib. Narrowest possible: this one name, nothing else.
+ignore_names = ["external_attr"]
