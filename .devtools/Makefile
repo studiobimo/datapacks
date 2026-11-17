@@ -7,6 +7,9 @@ PYTHON := $(MISE) exec -- python
 validate: ## Check every pack's layout, namespaces, JSON and references
 	$(PYTHON) $(CURDIR)/scripts/check-packs.py
 
+# What `ci / validate` runs: the base duplication check, plus the pack checks.
+ci: validate
+
 build: ## Package every pack into dist/ (PACK=<slug> for one)
 	$(PYTHON) $(CURDIR)/scripts/build.py $(PACK)
 
